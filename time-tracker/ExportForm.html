@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      rel="stylesheet"
+      href="https://ssl.gstatic.com/docs/script/css/add-ons1.css"
+    />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: Monaco, monospace;
+      }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 80%;
+      }
+      .instructions {
+        font-size: 12px;
+        font-style: italic;
+        margin-bottom: 10px;
+        width: 100%;
+        text-align: left;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+      }
+      .date-container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+      }
+      .date-container div {
+        width: 48%;
+      }
+      label {
+        margin: 10px 0 5px;
+        font-weight: bold;
+      }
+      .required:after {
+        content: " *";
+        color: red;
+      }
+      input[type="date"],
+      select {
+        padding: 8px;
+        margin-bottom: 15px;
+        height: auto;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .submit-container {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        position: relative;
+      }
+      .submit-button {
+        padding: 10px 20px;
+        height: auto;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .submit-button:hover {
+        background: #45a049;
+        color: white;
+      }
+      .submit-button[disabled] {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .submit-button.hide-text {
+        color: transparent;
+      }
+      .err {
+        border: 2px solid red !important;
+      }
+      .spinner {
+        display: none;
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top: 4px solid #0000ff;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        position: absolute;
+      }
+      .submit-button.hide-text .spinner {
+        display: block;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <form id="inputForm">
+        <label for="companyName" class="required">Company Name</label>
+        <select
+          id="companyName"
+          name="companyName"
+          onchange="onCompanyChange()"
+          required
+        >
+          <option value="" disabled selected>Select</option>
+          <?!= createCompanyDropdown() ?>
+        </select>
+        <label for="projectName" class="required">Project Name</label>
+        <select id="projectName" name="projectName" required>
+          <option value="" disabled selected>Select</option>
+        </select>
+        <div class="submit-container">
+          <button type="button" class="submit-button" onclick="submitForm()">
+            Submit
+            <div class="spinner" id="spinner"></div>
+          </button>
+        </div>
+      </form>
+    </div>
+    <script>
+      const onCompanyChange = () => {
+        const companyName = document.getElementById("companyName").value;
+        google.script.run
+          .withSuccessHandler(updateProjectDropdown)
+          .getProjectsForCompany(companyName);
+      };
+
+      const updateProjectDropdown = (projects) => {
+        const projectSelect = document.getElementById("projectName");
+        projectSelect.innerHTML =
+          '<option value="" disabled selected>Select</option>'; // Clear the project dropdown
+
+        projects.forEach((project) => {
+          const option = document.createElement("option");
+          option.value = project;
+          option.textContent = project;
+          projectSelect.appendChild(option);
+        });
+      };
+      const submitForm = () => {
+        console.time("submitFormDelay");
+        const requiredFields = document.querySelectorAll("[required]");
+        let allFieldsValid = true;
+        let errorMessage = "Please correct the following errors:\n";
+
+        requiredFields.forEach((field) => {
+          if (!field.value || field.value === "Select") {
+            field.classList.add("err");
+            allFieldsValid = false;
+            errorMessage += `- "${field.previousElementSibling.textContent.replace(" *", "")}" is required.\n`;
+          } else {
+            field.classList.remove("err");
+          }
+        });
+
+        if (!allFieldsValid) {
+          alert(errorMessage);
+          return;
+        }
+
+        const submitButton = document.querySelector(".submit-button");
+        submitButton.classList.add("hide-text");
+        document.querySelector(".spinner").style.display = "block";
+        submitButton.disabled = true;
+        document
+          .querySelectorAll("input, select")
+          .forEach((field) => (field.disabled = true));
+
+        const companyName = document.getElementById("companyName").value;
+        const projectName = document.getElementById("projectName").value;
+
+        console.timeEnd("submitFormDelay");
+        console.time("exportToPDF");
+        google.script.run
+          .withSuccessHandler(hideSpinner)
+          .exportToPDF(companyName, projectName);
+      };
+
+      const hideSpinner = () => {
+        const submitButton = document.querySelector(".submit-button");
+        submitButton.classList.remove("hide-text");
+        document.querySelector(".spinner").style.display = "none";
+        submitButton.disabled = false;
+        document
+          .querySelectorAll("input, select")
+          .forEach((field) => (field.disabled = false));
+        console.timeEnd("exportToPDF");
+      };
+    </script>
+  </body>
+</html>
