@@ -5,9 +5,6 @@ const onOpen = () => {
   ui.createMenu("Export")
     .addItem("Export Time Entries to PDF", "showExportPDFDialog")
     .addToUi();
-  ui.createMenu("Tools")
-    .addItem("Wrap cell in HTML list", "wrapCellTextInHtmlList")
-    .addToUi();
 };
 
 const onEdit = (e) => {
@@ -25,88 +22,6 @@ const onEdit = (e) => {
     cellElapsedTime: e.range.offset(0, 2),
   });
 };
-
-/* Manually wrap a cell's text in HTML list format
-function wrapCellTextInHtmlList() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const range = sheet.getActiveRange();
-
-  range.getValues().forEach((row, rowIndex) => {
-    row.forEach((cellValue, colIndex) => {
-      if (typeof cellValue === 'string' && cellValue.trim() !== '') {
-        // Split cell text by line breaks
-        const lines = cellValue.split(/\r?\n/);
-
-        // Only format if there is more than one line
-        if (lines.length > 1) { 
-          // Wrap lines in <ul><li></li></ul>
-          const htmlList = `<ul>\n` + lines.map(line => `  <li>${line}</li>`).join('\n') + `\n</ul>`;
-          range.getCell(rowIndex + 1, colIndex + 1).setValue(htmlList);
-        }
-      }
-    });
-  });
-}
-*/
-
-function wrapCellTextInHtmlList() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const range = sheet.getActiveRange(); // Get selected range
-
-  range.getValues().forEach((row, rowIndex) => {
-    row.forEach((cellValue, colIndex) => {
-      if (typeof cellValue === "string" && cellValue.trim() !== "") {
-        const lines = cellValue.split(/\r?\n/); // Split lines by line breaks
-        let htmlOutput = ""; // Final HTML output
-        let stack = []; // Track nesting levels
-        let prevLevel = 0; // Track the previous indentation level
-        let isFirstLine = true; // Track if it's the first line
-
-        lines.forEach((line) => {
-          const trimmedLine = line.trim();
-
-          // Detect the nesting level based on "-" prefixes
-          const match = trimmedLine.match(/^(-+)\s*/); // Matches '-', '--', '---', etc.
-          const level = match ? match[1].length : 0; // Count '-' as the nesting level
-
-          if (isFirstLine && level === 0) {
-            // Treat the first line as plain text if it has no '-' prefix
-            htmlOutput += `<p>${trimmedLine}<p>\n`; // Plain text
-            isFirstLine = false; // Mark first line processed
-          } else {
-            // Handle nested lists
-            if (level > prevLevel) {
-              // Open new nested lists
-              for (let i = prevLevel; i < level; i++) {
-                htmlOutput += `<ul>`;
-                stack.push("ul");
-              }
-            } else if (level < prevLevel) {
-              // Close nested lists
-              for (let i = prevLevel; i > level; i--) {
-                htmlOutput += `</ul>`;
-                stack.pop();
-              }
-            }
-
-            // Add list item, removing prefixes
-            htmlOutput += `<li>${trimmedLine.replace(/^(-+\s*)/, "")}</li>`;
-            prevLevel = level; // Update previous level
-          }
-        });
-
-        // Close any remaining open lists
-        while (stack.length > 0) {
-          htmlOutput += `</ul>`;
-          stack.pop();
-        }
-
-        // Update the cell with the final formatted HTML
-        range.getCell(rowIndex + 1, colIndex + 1).setValue(htmlOutput);
-      }
-    });
-  });
-}
 
 // Processes time calculation based on Status
 const calculateTime = ({
