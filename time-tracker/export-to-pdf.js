@@ -1,6 +1,9 @@
 // time-tracker/export-to-pdf.js
 
 // === Config ================================================
+const templateDocId = "1osZLyS7V_hUfdIX50xivWMlSmNAedx8w6ydt7b6W_R0"; // Replace with your template doc ID
+const destFolderId = "1_bgB_uwwJ5DlYP6fG35sIFSwZC4Yxhjj"; // Replace with your folder ID
+
 const ColIndex = {
   payRate: 0,
   companyName: 1,
@@ -21,9 +24,10 @@ const Font = {
   size: {
     base: 9.5,
     code: 8.5,
-    bullet: 8,
   },
 };
+
+// === Styles ================================================
 const Styles = {
   h1: {
     [DocumentApp.Attribute.FONT_SIZE]: Font.size.base + 1,
@@ -71,14 +75,7 @@ const Styles = {
     [DocumentApp.Attribute.SPACING_BEFORE]: 6,
     [DocumentApp.Attribute.SPACING_AFTER]: 6,
   },
-  bullet: {
-    [DocumentApp.Attribute.FONT_FAMILY]: "Calibri",
-    [DocumentApp.Attribute.FONT_SIZE]: Font.size.bullet,
-  },
 };
-
-const templateDocId = "1osZLyS7V_hUfdIX50xivWMlSmNAedx8w6ydt7b6W_R0"; // Replace with your template doc ID
-const destFolderId = "15iBCLbVvICBDKsSvn_DwbbyebkKXzfYm"; // Replace with your folder ID
 
 // === Utilities ================================================
 /**
@@ -172,8 +169,8 @@ const appendStyledText = (paragraph, text, styles) => {
  * Converts HTML lists to Google Docs list formatting
  * @param {GoogleAppsScript.Document.Element} parent - Container element
  * @param {GoogleAppsScript.XML_Service.Element} listElement - Source list element
- * @param {boolean} isUnordered - True for bullet lists, false for numbered
- * @param {number} nestLevel - Current nesting depth
+ * @param {boolean} isUnordered - List type (bullet vs numbered)
+ * @param {number} nestLevel - Indentation level
  */
 const processList = (parent, listElement, isUnordered, nestLevel = 0) => {
   listElement.getChildren().forEach((child) => {
@@ -187,7 +184,7 @@ const processList = (parent, listElement, isUnordered, nestLevel = 0) => {
 
 /**
  * Creates formatted list items with proper indentation
- * @param {GoogleAppsScript.Document.Element} parent - Parent container
+ * @param {GoogleAppsScript.Document.Element} parent - Container element
  * @param {string} text - List item text content
  * @param {boolean} isUnordered - List type (bullet vs numbered)
  * @param {number} nestLevel - Indentation level
@@ -386,10 +383,25 @@ const appendInlineTokensToText = (textElement, inlineTokens) => {
 
       case "code":
         textElement.insertText(currentIndex, text);
-        textElement.setFontFamily(startIndex, currentIndex + text.length - 1, "Courier New");
-        textElement.setFontSize(startIndex, currentIndex + text.length - 1, Font.size.code);
-        textElement.setBackgroundColor(startIndex, currentIndex + text.length - 1, "#efefef");
-        codeRanges.push({ start: startIndex, end: currentIndex + text.length - 1 });
+        textElement.setFontFamily(
+          startIndex,
+          currentIndex + text.length - 1,
+          "Courier New",
+        );
+        textElement.setFontSize(
+          startIndex,
+          currentIndex + text.length - 1,
+          Font.size.code,
+        );
+        textElement.setBackgroundColor(
+          startIndex,
+          currentIndex + text.length - 1,
+          "#efefef",
+        );
+        codeRanges.push({
+          start: startIndex,
+          end: currentIndex + text.length - 1,
+        });
         currentIndex += text.length;
         break;
 
@@ -416,7 +428,7 @@ const appendInlineTokensToText = (textElement, inlineTokens) => {
     // Clear background for entire text first
     textElement.setBackgroundColor(0, totalLength - 1, null);
     // Then re-apply background only to code ranges
-    codeRanges.forEach(range => {
+    codeRanges.forEach((range) => {
       textElement.setBackgroundColor(range.start, range.end, "#efefef");
     });
   }
