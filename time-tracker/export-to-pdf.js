@@ -28,33 +28,27 @@ const Styles = {
   h1: {
     [DocumentApp.Attribute.FONT_SIZE]: Font.size.base + 1,
     [DocumentApp.Attribute.BOLD]: true,
-    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
   },
   h2: {
     [DocumentApp.Attribute.FONT_SIZE]: Font.size.base + 0.5,
     [DocumentApp.Attribute.BOLD]: true,
-    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
   },
   h3: {
     [DocumentApp.Attribute.FONT_SIZE]: Font.size.base + 0.3,
     [DocumentApp.Attribute.BOLD]: true,
-    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
   },
   h4: {
     [DocumentApp.Attribute.FONT_SIZE]: Font.size.base,
     [DocumentApp.Attribute.BOLD]: true,
-    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
   },
   h5: {
     [DocumentApp.Attribute.FONT_SIZE]: Font.size.base,
     [DocumentApp.Attribute.BOLD]: true,
     [DocumentApp.Attribute.ITALIC]: true,
-    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
   },
   h6: {
     [DocumentApp.Attribute.FONT_SIZE]: Font.size.base,
     [DocumentApp.Attribute.ITALIC]: true,
-    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
   },
   body: {
     [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
@@ -155,6 +149,7 @@ const appendHeader = (paragraph, text, headerType) => {
     h6: DocumentApp.ParagraphHeading.HEADING6,
   };
   paragraph.setHeading(headers[headerType]);
+  paragraph.setSpacingBefore(6);
   paragraph.appendText(text).setAttributes(Styles[headerType]);
 };
 
