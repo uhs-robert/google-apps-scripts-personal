@@ -142,3 +142,261 @@ const extractLinkData = (text) => {
 const isHtml = (content) => {
   return /<\/?[a-z][\s\S]*>/i.test(content);
 };
+
+/**
+ * Identifies Markdown content by detecting common Markdown patterns
+ * @param {string} content - Content to analyze
+ * @returns {boolean} True if Markdown patterns detected
+ */
+const isMarkdown = (content) => {
+  const markdownPatterns = [
+    /^#{1,6}\s+/m,          // Headers: # ## ### etc
+    /\*\*.*?\*\*/,          // Bold: **text**
+    /\*.*?\*/,              // Italic: *text*
+    /~~.*?~~/,              // Strikethrough: ~~text~~
+    /`.*?`/,                // Inline code: `code`
+    /^\s*[-*+]\s+/m,        // Unordered lists: - * +
+    /^\s*\d+\.\s+/m,        // Ordered lists: 1. 2.
+    /\[.*?\]\(.*?\)/,       // Links: [text](url)
+    /^>\s+/m,               // Blockquotes: > text
+    /```[\s\S]*?```/,       // Code blocks: ```code```
+  ];
+  
+  return markdownPatterns.some(pattern => pattern.test(content));
+};
+
+/**
+ * Parses Markdown content into structured tokens for Google Docs conversion
+ * @param {string} content - Markdown content to parse
+ * @returns {Array} Array of tokens representing the parsed content
+ */
+const parseMarkdown = (content) => {
+  const tokens = [];
+  const lines = content.split('\n');
+  let currentList = null;
+  let inCodeBlock = false;
+  let codeBlockContent = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Handle code blocks
+    if (line.trim().startsWith('```')) {
+      if (inCodeBlock) {
+        // End code block
+        tokens.push({
+          type: 'codeblock',
+          content: codeBlockContent.join('\n')
+        });
+        codeBlockContent = [];
+        inCodeBlock = false;
+      } else {
+        // Start code block
+        inCodeBlock = true;
+      }
+      continue;
+    }
+    
+    if (inCodeBlock) {
+      codeBlockContent.push(line);
+      continue;
+    }
+    
+    // Empty line - end current list and add paragraph break
+    if (line.trim() === '') {
+      if (currentList) {
+        tokens.push(currentList);
+        currentList = null;
+      }
+      tokens.push({ type: 'paragraph', content: '' });
+      continue;
+    }
+    
+    // Headers
+    const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headerMatch) {
+      if (currentList) {
+        tokens.push(currentList);
+        currentList = null;
+      }
+      tokens.push({
+        type: 'header',
+        level: headerMatch[1].length,
+        content: headerMatch[2]
+      });
+      continue;
+    }
+    
+    // Lists
+    const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);
+    if (listMatch) {
+      const indent = listMatch[1].length;
+      const isOrdered = /\d+\./.test(listMatch[2]);
+      const content = listMatch[3];
+      
+      if (!currentList || currentList.ordered !== isOrdered) {
+        if (currentList) tokens.push(currentList);
+        currentList = {
+          type: 'list',
+          ordered: isOrdered,
+          items: []
+        };
+      }
+      
+      currentList.items.push({
+        content: parseInlineMarkdown(content),
+        indent: Math.floor(indent / 2)
+      });
+      continue;
+    }
+    
+    // Blockquotes
+    const quoteMatch = line.match(/^>\s*(.+)$/);
+    if (quoteMatch) {
+      if (currentList) {
+        tokens.push(currentList);
+        currentList = null;
+      }
+      tokens.push({
+        type: 'blockquote',
+        content: parseInlineMarkdown(quoteMatch[1])
+      });
+      continue;
+    }
+    
+    // Regular paragraph
+    if (currentList) {
+      tokens.push(currentList);
+      currentList = null;
+    }
+    
+    tokens.push({
+      type: 'paragraph',
+      content: parseInlineMarkdown(line)
+    });
+  }
+  
+  // Close any remaining list
+  if (currentList) {
+    tokens.push(currentList);
+  }
+  
+  return tokens;
+};
+
+/**
+ * Parses inline Markdown formatting within text
+ * @param {string} text - Text with inline Markdown
+ * @returns {Array} Array of inline tokens with formatting
+ */
+const parseInlineMarkdown = (text) => {
+  const tokens = [];
+  let remaining = text;
+  
+  // Define inline patterns with priority order
+  const patterns = [
+    { regex: /\[([^\]]+)\]\(([^)]+)\)/, type: 'link', groups: ['text', 'url'] },
+    { regex: /`([^`]+)`/, type: 'code', groups: ['text'] },
+    { regex: /\*\*([^*]+)\*\*/, type: 'bold', groups: ['text'] },
+    { regex: /\*([^*]+)\*/, type: 'italic', groups: ['text'] },
+    { regex: /~~([^~]+)~~/, type: 'strikethrough', groups: ['text'] },
+  ];
+  
+  while (remaining.length > 0) {
+    let matched = false;
+    
+    for (const pattern of patterns) {
+      const match = remaining.match(pattern.regex);
+      if (match && match.index === 0) {
+        // Add the formatted content
+        const token = { type: pattern.type };
+        pattern.groups.forEach((group, index) => {
+          token[group] = match[index + 1];
+        });
+        tokens.push(token);
+        
+        remaining = remaining.slice(match[0].length);
+        matched = true;
+        break;
+      }
+    }
+    
+    if (!matched) {
+      // Find next special character or add rest as plain text
+      let nextSpecialIndex = remaining.length;
+      for (const pattern of patterns) {
+        const match = remaining.match(pattern.regex);
+        if (match && match.index < nextSpecialIndex) {
+          nextSpecialIndex = match.index;
+        }
+      }
+      
+      if (nextSpecialIndex > 0) {
+        tokens.push({
+          type: 'text',
+          text: remaining.slice(0, nextSpecialIndex)
+        });
+        remaining = remaining.slice(nextSpecialIndex);
+      } else {
+        tokens.push({
+          type: 'text',
+          text: remaining
+        });
+        remaining = '';
+      }
+    }
+  }
+  
+  return tokens;
+};
+
+/**
+ * Test function to validate Markdown parsing functionality
+ * @returns {Object} Test results with sample conversions
+ */
+const testMarkdownParsing = () => {
+  const testCases = [
+    {
+      name: 'Headers',
+      input: '# Main Title\n## Subtitle\n### Section',
+      expected: 'Should create heading1, heading2, heading3'
+    },
+    {
+      name: 'Text Formatting',
+      input: 'This is **bold** and *italic* and `code` text.',
+      expected: 'Should apply formatting inline'
+    },
+    {
+      name: 'Lists',
+      input: '- Item 1\n- Item 2\n  - Nested item\n1. Numbered\n2. List',
+      expected: 'Should create bullet and numbered lists'
+    },
+    {
+      name: 'Links',
+      input: 'Check out [Google](https://google.com) for search.',
+      expected: 'Should create hyperlink'
+    },
+    {
+      name: 'Code Block',
+      input: '```\nfunction test() {\n  return "hello";\n}\n```',
+      expected: 'Should create formatted code block'
+    }
+  ];
+  
+  const results = testCases.map(test => {
+    const isDetected = isMarkdown(test.input);
+    const tokens = isDetected ? parseMarkdown(test.input) : null;
+    
+    return {
+      name: test.name,
+      input: test.input,
+      detected: isDetected,
+      tokenCount: tokens ? tokens.length : 0,
+      tokens: tokens,
+      expected: test.expected
+    };
+  });
+  
+  Logger.log('Markdown Test Results:', results);
+  return results;
+};

@@ -1,4 +1,6 @@
 // time-tracker/export-to-pdf.js
+
+// === Config ================================================
 const ColIndex = {
   payRate: 0,
   companyName: 1,
@@ -15,7 +17,74 @@ const ColIndex = {
   month: 12,
   year: 13,
 };
-const FontSize = 9.5;
+const Font = {
+  size: {
+    base: 9.5,
+    code: 8.5,
+    bullet: 8,
+  },
+};
+const Styles = {
+  h1: {
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.base + 1,
+    [DocumentApp.Attribute.BOLD]: true,
+    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
+  },
+  h2: {
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.base + 0.5,
+    [DocumentApp.Attribute.BOLD]: true,
+    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
+  },
+  h3: {
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.base + 0.3,
+    [DocumentApp.Attribute.BOLD]: true,
+    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
+  },
+  h4: {
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.base,
+    [DocumentApp.Attribute.BOLD]: true,
+    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
+  },
+  h5: {
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.base,
+    [DocumentApp.Attribute.BOLD]: true,
+    [DocumentApp.Attribute.ITALIC]: true,
+    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
+  },
+  h6: {
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.base,
+    [DocumentApp.Attribute.ITALIC]: true,
+    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
+  },
+  body: {
+    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+      DocumentApp.HorizontalAlignment.LEFT,
+    [DocumentApp.Attribute.FONT_FAMILY]: "Calibri",
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.base,
+    [DocumentApp.Attribute.BOLD]: false,
+  },
+  codeInline: {
+    [DocumentApp.Attribute.FONT_FAMILY]: "Courier New",
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.code,
+    [DocumentApp.Attribute.BACKGROUND_COLOR]: "#efefef",
+  },
+  codeBlock: {
+    [DocumentApp.Attribute.FONT_FAMILY]: "Courier New",
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.code,
+    [DocumentApp.Attribute.BACKGROUND_COLOR]: "#efefef",
+    [DocumentApp.Attribute.INDENT_START]: 18,
+    [DocumentApp.Attribute.INDENT_END]: 18,
+    [DocumentApp.Attribute.SPACING_BEFORE]: 6,
+    [DocumentApp.Attribute.SPACING_AFTER]: 6,
+  },
+  bullet: {
+    [DocumentApp.Attribute.FONT_FAMILY]: "Calibri",
+    [DocumentApp.Attribute.FONT_SIZE]: Font.size.bullet,
+  },
+};
+
+const templateDocId = "1osZLyS7V_hUfdIX50xivWMlSmNAedx8w6ydt7b6W_R0"; // Replace with your template doc ID
+const destFolderId = "15iBCLbVvICBDKsSvn_DwbbyebkKXzfYm"; // Replace with your folder ID
 
 // === Utilities ================================================
 /**
@@ -48,7 +117,7 @@ const getFilteredData = (companyName, projectName) => {
 };
 
 /**
- * Performs template placeholder replacement in document sections
+ * P,erforms template placeholder replacement in document sections
  * @param {GoogleAppsScript.Document.Body|GoogleAppsScript.Document.HeaderSection} source - Document section to update
  * @param {Object} Dates - Date formatting object
  * @param {Object} Info - Company and project information
@@ -86,7 +155,7 @@ const appendHeader = (paragraph, text, headerType) => {
     h6: DocumentApp.ParagraphHeading.HEADING6,
   };
   paragraph.setHeading(headers[headerType]);
-  paragraph.appendText(text);
+  paragraph.appendText(text).setAttributes(Styles[headerType]);
 };
 
 // Function to append styled text with specific formatting
@@ -97,7 +166,7 @@ const appendHeader = (paragraph, text, headerType) => {
  * @param {Object} styles - Formatting options (bold, italic, underline)
  */
 const appendStyledText = (paragraph, text, styles) => {
-  let textElement = paragraph.appendText(text);
+  let textElement = paragraph.appendText(text).setAttributes(Styles.body);
   if (styles.bold) textElement.setBold(true);
   if (styles.italic) textElement.setItalic(true);
   if (styles.underline) textElement.setUnderline(true);
@@ -130,10 +199,11 @@ const processList = (parent, listElement, isUnordered, nestLevel = 0) => {
  */
 const appendListItem = (parent, text, isUnordered, nestLevel = 0) => {
   const listItem = parent.appendListItem(text);
+  listItem.setAttributes(Styles.body);
   listItem.setGlyphType(
     isUnordered ? DocumentApp.GlyphType.BULLET : DocumentApp.GlyphType.NUMBER,
   );
-  listItem.editAsText().setFontSize(FontSize);
+  // listItem.editAsText().setFontSize(Font.size.base);
   if (nestLevel.length > 0) {
     const textElement = listItem.editAsText();
     textElement.insertText(0, "\t".repeat(nestLevel));
@@ -141,13 +211,234 @@ const appendListItem = (parent, text, isUnordered, nestLevel = 0) => {
 };
 
 /**
- * Processes HTML content for insertion into document cells
- * Converts HTML to native Google Docs formatting when possible
+ * Processes Markdown tokens and converts them to Google Docs formatting
  * @param {GoogleAppsScript.Document.TableCell} docCell - Target table cell
- * @param {string} content - HTML or plain text content
+ * @param {Array} tokens - Parsed Markdown tokens
  */
-const insertHtmlContentInDoc = (docCell, content) => {
-  if (isHtml(content)) {
+const processMarkdownTokens = (docCell, tokens) => {
+  docCell.clear();
+  docCell.setAttributes(Styles.body);
+
+  tokens.forEach((token) => {
+    switch (token.type) {
+      case "header":
+        const headerParagraph = docCell.appendParagraph("");
+        appendHeader(headerParagraph, token.content, `h${token.level}`);
+        break;
+
+      case "paragraph":
+        if (token.content != "") {
+          const paragraph = docCell.appendParagraph("");
+          paragraph.setAttributes(Styles.body);
+          appendInlineTokens(paragraph, token.content);
+        }
+        break;
+
+      case "list":
+        token.items.forEach((item) => {
+          const listItem = docCell.appendListItem("");
+          listItem.setGlyphType(
+            token.ordered
+              ? DocumentApp.GlyphType.NUMBER
+              : DocumentApp.GlyphType.BULLET,
+          );
+          listItem.editAsText().setFontSize(Font.size.base);
+
+          // Handle indentation
+          if (item.indent > 0) {
+            const textElement = listItem.editAsText();
+            textElement
+              .insertText(0, "\t".repeat(item.indent))
+              .setAttributes(Styles.body);
+          }
+
+          // Add inline content to the list item text
+          appendInlineTokensToText(listItem.editAsText(), item.content);
+        });
+        break;
+
+      case "blockquote":
+        const quoteParagraph = docCell.appendParagraph("");
+        quoteParagraph.setIndentStart(36); // Indent blockquotes
+        appendInlineTokens(quoteParagraph, token.content);
+        quoteParagraph.setFontSize(Font.size.base);
+        break;
+
+      case "codeblock":
+        const codeParagraph = docCell.appendParagraph(token.content);
+        codeParagraph.setAttributes(Styles.codeBlock);
+        break;
+    }
+  });
+
+  // Remove empty first paragraph if it exists
+  if (docCell.getNumChildren() > 0) {
+    const firstChild = docCell.getChild(0);
+    if (
+      firstChild.asParagraph &&
+      firstChild.asParagraph().getText().trim() === ""
+    ) {
+      docCell.removeChild(firstChild);
+    }
+  }
+};
+
+/**
+ * Processes inline Markdown tokens and appends them to a paragraph
+ * @param {GoogleAppsScript.Document.Paragraph} paragraph - Target paragraph
+ * @param {Array} inlineTokens - Array of inline formatting tokens
+ */
+const appendInlineTokens = (paragraph, inlineTokens) => {
+  inlineTokens.forEach((token) => {
+    switch (token.type) {
+      case "text":
+        const textElement = paragraph.appendText(token.text);
+        textElement.setAttributes(Styles.body);
+        break;
+
+      case "bold":
+        const boldText = paragraph.appendText(token.text);
+        boldText.setAttributes(Styles.body);
+        boldText.setBold(true);
+        break;
+
+      case "italic":
+        const italicText = paragraph.appendText(token.text);
+        italicText.setAttributes(Styles.body);
+        italicText.setItalic(true);
+        break;
+
+      case "strikethrough":
+        const strikeText = paragraph.appendText(token.text);
+        strikeText.setAttributes(Styles.body);
+        strikeText.setStrikethrough(true);
+        break;
+
+      case "code":
+        const codeText = paragraph.appendText(token.text);
+        codeText.setAttributes(Styles.codeInline);
+        break;
+
+      case "link":
+        const linkText = paragraph.appendText(token.text);
+        linkText.setAttributes(Styles.body);
+        linkText.setLinkUrl(token.url);
+        break;
+    }
+  });
+};
+
+/**
+ * Processes inline Markdown tokens and applies them to a Text element
+ * @param {GoogleAppsScript.Document.Text} textElement - Target text element
+ * @param {Array} inlineTokens - Array of inline formatting tokens
+ */
+const appendInlineTokensToText = (textElement, inlineTokens) => {
+  let currentIndex = 0;
+  const codeRanges = [];
+
+  inlineTokens.forEach((token) => {
+    const startIndex = currentIndex;
+    const text = token.text || "";
+
+    switch (token.type) {
+      case "text":
+        textElement.insertText(currentIndex, text);
+        textElement.setAttributes(
+          startIndex,
+          currentIndex + text.length - 1,
+          Styles.body,
+        );
+        currentIndex += text.length;
+        break;
+
+      case "bold":
+        textElement.insertText(currentIndex, text);
+        textElement.setAttributes(
+          startIndex,
+          currentIndex + text.length - 1,
+          Styles.body,
+        );
+        textElement.setBold(startIndex, currentIndex + text.length - 1, true);
+        currentIndex += text.length;
+        break;
+
+      case "italic":
+        textElement.insertText(currentIndex, text);
+        textElement.setAttributes(
+          startIndex,
+          currentIndex + text.length - 1,
+          Styles.body,
+        );
+        textElement.setItalic(startIndex, currentIndex + text.length - 1, true);
+        currentIndex += text.length;
+        break;
+
+      case "strikethrough":
+        textElement.insertText(currentIndex, text);
+        textElement.setAttributes(
+          startIndex,
+          currentIndex + text.length - 1,
+          Styles.body,
+        );
+        textElement.setStrikethrough(
+          startIndex,
+          currentIndex + text.length - 1,
+          true,
+        );
+        currentIndex += text.length;
+        break;
+
+      case "code":
+        textElement.insertText(currentIndex, text);
+        textElement.setFontFamily(startIndex, currentIndex + text.length - 1, "Courier New");
+        textElement.setFontSize(startIndex, currentIndex + text.length - 1, Font.size.code);
+        textElement.setBackgroundColor(startIndex, currentIndex + text.length - 1, "#efefef");
+        codeRanges.push({ start: startIndex, end: currentIndex + text.length - 1 });
+        currentIndex += text.length;
+        break;
+
+      case "link":
+        textElement.insertText(currentIndex, text);
+        textElement.setAttributes(
+          startIndex,
+          currentIndex + text.length - 1,
+          Styles.body,
+        );
+        textElement.setLinkUrl(
+          startIndex,
+          currentIndex + text.length - 1,
+          token.url,
+        );
+        currentIndex += text.length;
+        break;
+    }
+  });
+
+  // After all text is added, ensure only code ranges have background color
+  const totalLength = textElement.getText().length;
+  if (codeRanges.length > 0 && totalLength > 0) {
+    // Clear background for entire text first
+    textElement.setBackgroundColor(0, totalLength - 1, null);
+    // Then re-apply background only to code ranges
+    codeRanges.forEach(range => {
+      textElement.setBackgroundColor(range.start, range.end, "#efefef");
+    });
+  }
+};
+
+/**
+ * Processes content (Markdown, HTML, or plain text) for insertion into document cells
+ * @param {GoogleAppsScript.Document.TableCell} docCell - Target table cell
+ * @param {string} content - Content to process and insert
+ */
+const insertContentInDoc = (docCell, content) => {
+  docCell.setAttributes(Styles.body);
+  if (isMarkdown(content)) {
+    const tokens = parseMarkdown(content);
+    processMarkdownTokens(docCell, tokens);
+    // docCell.setFontSize(Font.size.body);
+  } else if (isHtml(content)) {
     const sanitizedContent = sanitizeHtml(content);
     const parser = XmlService.parse("<div>" + sanitizedContent + "</div>");
     const root = parser.getRootElement();
@@ -163,6 +454,7 @@ const insertHtmlContentInDoc = (docCell, content) => {
     }
   } else {
     docCell.setText(content);
+    docCell.editAsText().setAttributes(Styles.body);
   }
 };
 
@@ -204,8 +496,6 @@ const sanitizeHtml = (html) => {
  */
 const exportToPDF = (companyName, projectName, log = false) => {
   try {
-    const templateDocId = "1osZLyS7V_hUfdIX50xivWMlSmNAedx8w6ydt7b6W_R0"; // Replace with your template doc ID
-    const destFolderId = "1r6mK9x7ZXZfWYLgSNaXRf4whG5FB1sRf"; // Replace with your folder ID
     const destFolder = DriveApp.getFolderById(destFolderId);
 
     // Check if the company folder exists, if not, create it
@@ -339,8 +629,8 @@ const updateDocumentPlaceholders = (docFile, companyName, data, Dates) => {
         .appendText(descriptionText || "");
       textElement.setLinkUrl(link); // Set the link for the whole text
     } else {
-      // Insert description as HTML content if no link is present
-      insertHtmlContentInDoc(descriptionCell, descriptionText || "");
+      // Insert description as formatted content (supports Markdown, HTML, or plain text)
+      insertContentInDoc(descriptionCell, descriptionText || "");
     }
   });
 
