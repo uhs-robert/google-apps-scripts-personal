@@ -1,4 +1,4 @@
-// time-tracker/ExportFunction.js
+// time-tracker/export-to-pdf.js
 const ColIndex = {
   payRate: 0,
   companyName: 1,
@@ -17,6 +17,191 @@ const ColIndex = {
 };
 const FontSize = 9.5;
 
+// === Utilities ================================================
+/**
+ * Creates standardized filename for time tracking reports
+ * @param {Object} Dates - Date information object from getDates()
+ * @param {string} companyName - Company name for filename
+ * @returns {string} Formatted filename without extension
+ */
+const generateFileName = (Dates, companyName) => {
+  return `${companyName}_${Dates.formattedStart}_to_${Dates.formattedEnd}_Time_Tracking_Report`;
+};
+
+/**
+ * Retrieves time entries matching company and project criteria
+ * @param {string} companyName - Company name filter
+ * @param {string} projectName - Project name filter
+ * @returns {Array[]} Filtered rows from time tracking sheet
+ */
+const getFilteredData = (companyName, projectName) => {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("🕑 Time");
+  const dataRange = sheet.getRange(`B3:O${sheet.getLastRow()}`);
+  const data = dataRange.getValues();
+
+  return data.filter((row) => {
+    const rowCompanyName = row[1]; // Company Name is in column C (index 2)
+    const rowProjectName = row[2]; // Project Name is in column D (index 3)
+
+    return rowCompanyName === companyName && rowProjectName === projectName;
+  });
+};
+
+/**
+ * Performs template placeholder replacement in document sections
+ * @param {GoogleAppsScript.Document.Body|GoogleAppsScript.Document.HeaderSection} source - Document section to update
+ * @param {Object} Dates - Date formatting object
+ * @param {Object} Info - Company and project information
+ */
+const replaceText = (source, Dates, Info) => {
+  const replacements = {
+    "{{companyName}}": Info.companyName,
+    "{{totalHours}}": Info.totalHours,
+    "{{projectName}}": Info.projectName,
+    "{{startDate}}": Dates.formattedStart,
+    "{{endDate}}": Dates.formattedEnd,
+    "{{todayLong}}": Dates.todayLong,
+    "{{todayShort}}": Dates.todayShort,
+  };
+
+  Object.keys(replacements).forEach((key) => {
+    source.replaceText(key, replacements[key]);
+  });
+};
+
+// Function to append headers with specific formatting
+/**
+ * Applies Google Docs heading styles to paragraphs
+ * @param {GoogleAppsScript.Document.Paragraph} paragraph - Target paragraph
+ * @param {string} text - Header text content
+ * @param {string} headerType - HTML header tag (h1-h6)
+ */
+const appendHeader = (paragraph, text, headerType) => {
+  const headers = {
+    h1: DocumentApp.ParagraphHeading.HEADING1,
+    h2: DocumentApp.ParagraphHeading.HEADING2,
+    h3: DocumentApp.ParagraphHeading.HEADING3,
+    h4: DocumentApp.ParagraphHeading.HEADING4,
+    h5: DocumentApp.ParagraphHeading.HEADING5,
+    h6: DocumentApp.ParagraphHeading.HEADING6,
+  };
+  paragraph.setHeading(headers[headerType]);
+  paragraph.appendText(text);
+};
+
+// Function to append styled text with specific formatting
+/**
+ * Applies text formatting to paragraph content
+ * @param {GoogleAppsScript.Document.Paragraph} paragraph - Target paragraph
+ * @param {string} text - Text content to style
+ * @param {Object} styles - Formatting options (bold, italic, underline)
+ */
+const appendStyledText = (paragraph, text, styles) => {
+  let textElement = paragraph.appendText(text);
+  if (styles.bold) textElement.setBold(true);
+  if (styles.italic) textElement.setItalic(true);
+  if (styles.underline) textElement.setUnderline(true);
+};
+
+// Functions for processing lists and list items
+/**
+ * Converts HTML lists to Google Docs list formatting
+ * @param {GoogleAppsScript.Document.Element} parent - Container element
+ * @param {GoogleAppsScript.XML_Service.Element} listElement - Source list element
+ * @param {boolean} isUnordered - True for bullet lists, false for numbered
+ * @param {number} nestLevel - Current nesting depth
+ */
+const processList = (parent, listElement, isUnordered, nestLevel = 0) => {
+  listElement.getChildren().forEach((child) => {
+    if (child.getName() === "li") {
+      appendListItem(parent, child.getText(), isUnordered, nestLevel);
+    } else if (child.getName() === "ul" || child.getName() === "ol") {
+      processList(parent, child, isUnordered, nestLevel++);
+    }
+  });
+};
+
+/**
+ * Creates formatted list items with proper indentation
+ * @param {GoogleAppsScript.Document.Element} parent - Parent container
+ * @param {string} text - List item text content
+ * @param {boolean} isUnordered - List type (bullet vs numbered)
+ * @param {number} nestLevel - Indentation level
+ */
+const appendListItem = (parent, text, isUnordered, nestLevel = 0) => {
+  const listItem = parent.appendListItem(text);
+  listItem.setGlyphType(
+    isUnordered ? DocumentApp.GlyphType.BULLET : DocumentApp.GlyphType.NUMBER,
+  );
+  listItem.editAsText().setFontSize(FontSize);
+  if (nestLevel.length > 0) {
+    const textElement = listItem.editAsText();
+    textElement.insertText(0, "\t".repeat(nestLevel));
+  }
+};
+
+/**
+ * Processes HTML content for insertion into document cells
+ * Converts HTML to native Google Docs formatting when possible
+ * @param {GoogleAppsScript.Document.TableCell} docCell - Target table cell
+ * @param {string} content - HTML or plain text content
+ */
+const insertHtmlContentInDoc = (docCell, content) => {
+  if (isHtml(content)) {
+    const sanitizedContent = sanitizeHtml(content);
+    const parser = XmlService.parse("<div>" + sanitizedContent + "</div>");
+    const root = parser.getRootElement();
+    Logger.log({ sanitizedContent });
+    docCell.clear();
+    processElement(docCell, root);
+    // Remove the first paragraph if it exists
+    if (docCell.getNumChildren() > 0) {
+      const firstChild = docCell.getChild(0);
+      //const lastChild = docCell.getChild(docCell.getNumChildren() - 1);
+      if (firstChild.asParagraph) docCell.removeChild(firstChild);
+      //if(lastChild.asParagraph) docCell.removeChild(lastChild);
+    }
+  } else {
+    docCell.setText(content);
+  }
+};
+
+/**
+ * Removes unsafe HTML tags while preserving formatting elements
+ * @param {string} html - Raw HTML content
+ * @returns {string} Sanitized HTML with only allowed tags
+ */
+const sanitizeHtml = (html) => {
+  const allowedTags = [
+    "b",
+    "i",
+    "u",
+    "ul",
+    "ol",
+    "li",
+    "div",
+    "p",
+    "br",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+  ];
+  return html.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag) => {
+    return allowedTags.includes(tag.toLowerCase()) ? match : "";
+  });
+};
+
+// === Main ================================================
+/**
+ * Main orchestrator for PDF export pipeline
+ * Handles full workflow from data filtering to PDF generation with user feedback
+ * @param {string} companyName - Target company for filtering time entries
+ * @param {string} projectName - Target project for filtering time entries
+ * @param {boolean} log - Enable detailed logging for debugging
+ */
 const exportToPDF = (companyName, projectName, log = false) => {
   try {
     const templateDocId = "1osZLyS7V_hUfdIX50xivWMlSmNAedx8w6ydt7b6W_R0"; // Replace with your template doc ID
@@ -67,112 +252,14 @@ const exportToPDF = (companyName, projectName, log = false) => {
   }
 };
 
-const getOrCreateFolder = (parentFolder, folderName) => {
-  const folders = parentFolder.getFoldersByName(folderName);
-  return folders.hasNext()
-    ? folders.next()
-    : parentFolder.createFolder(folderName);
-};
-
-const getDates = (data) => {
-  const today = new Date();
-  const actualStart = new Date(data[0][ColIndex.date]);
-  const actualEnd = new Date(data[data.length - 1][ColIndex.date]);
-  const timeZone = Session.getScriptTimeZone();
-
-  return {
-    today,
-    todayShort: Utilities.formatDate(today, timeZone, "MM-dd-yyyy"),
-    todayLong: Utilities.formatDate(today, timeZone, "MMMM dd, yyyy"),
-    actualStart,
-    actualEnd,
-    formattedStart: Utilities.formatDate(actualStart, timeZone, "MM-dd-yyyy"),
-    formattedEnd: Utilities.formatDate(actualEnd, timeZone, "MM-dd-yyyy"),
-  };
-};
-
-const generateFileName = (Dates, companyName) => {
-  return `${companyName}_${Dates.formattedStart}_to_${Dates.formattedEnd}_Time_Tracking_Report`;
-};
-
-const createDocumentFromTemplate = (templateDocId, fileName, destFolder) => {
-  const doc = DriveApp.getFileById(templateDocId).makeCopy(
-    fileName,
-    destFolder,
-  );
-  const docId = doc.getId();
-  const docFile = DocumentApp.openById(docId);
-  return { docFile, docId };
-};
-
-const convertDocToPDF = (docId, fileName, destFolder) => {
-  const pdf = DriveApp.getFileById(docId).getAs("application/pdf");
-  const pdfFile = destFolder.createFile(pdf).setName(`${fileName}.pdf`);
-  return pdfFile;
-};
-
-const showDialog = (title, message) => {
-  const htmlContent = `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: Monaco, monospace;
-          }
-          p {
-            margin: 10px 0;
-            font-size: 14px;
-          }
-          a {
-            color: #1a73e8;
-            text-decoration: none;
-          }
-          a:hover {
-            text-decoration: underline;
-          }
-        </style>
-      </head>
-      <body>
-        <div>
-          ${message}
-        </div>
-      </body>
-    </html>
-  `;
-  const htmlOutput = HtmlService.createHtmlOutput(htmlContent)
-    .setWidth(300)
-    .setHeight(200);
-  SpreadsheetApp.getUi().showModalDialog(htmlOutput, title);
-};
-
-const getFilteredData = (companyName, projectName) => {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("🕑 Time");
-  const dataRange = sheet.getRange(`B3:O${sheet.getLastRow()}`);
-  const data = dataRange.getValues();
-
-  return data.filter((row) => {
-    const rowCompanyName = row[1]; // Company Name is in column C (index 2)
-    const rowProjectName = row[2]; // Project Name is in column D (index 3)
-
-    return rowCompanyName === companyName && rowProjectName === projectName;
-  });
-};
-
-const replaceText = (source, Dates, Info) => {
-  const replacements = {
-    "{{companyName}}": Info.companyName,
-    "{{totalHours}}": Info.totalHours,
-    "{{projectName}}": Info.projectName,
-    "{{startDate}}": Dates.formattedStart,
-    "{{endDate}}": Dates.formattedEnd,
-    "{{todayLong}}": Dates.todayLong,
-    "{{todayShort}}": Dates.todayShort,
-  };
-
-  Object.keys(replacements).forEach((key) => {
-    source.replaceText(key, replacements[key]);
-  });
-};
+/**
+ * Populates document template with time tracking data and metadata
+ * Handles both text placeholders and dynamic table generation
+ * @param {GoogleAppsScript.Document.Document} docFile - Template document to populate
+ * @param {string} companyName - Company name for calculations
+ * @param {Array[]} data - Time tracking data rows
+ * @param {Object} Dates - Date formatting information
+ */
 const updateDocumentPlaceholders = (docFile, companyName, data, Dates) => {
   const body = docFile.getBody();
   const header = docFile.getHeader();
@@ -262,71 +349,12 @@ const updateDocumentPlaceholders = (docFile, companyName, data, Dates) => {
   docFile.saveAndClose();
 };
 
-const insertHtmlContentInDoc = (docCell, content) => {
-  if (isHtml(content)) {
-    const sanitizedContent = sanitizeHtml(content);
-    const parser = XmlService.parse("<div>" + sanitizedContent + "</div>");
-    const root = parser.getRootElement();
-    Logger.log({ sanitizedContent });
-    docCell.clear();
-    processElement(docCell, root);
-    // Remove the first paragraph if it exists
-    if (docCell.getNumChildren() > 0) {
-      const firstChild = docCell.getChild(0);
-      //const lastChild = docCell.getChild(docCell.getNumChildren() - 1);
-      if (firstChild.asParagraph) docCell.removeChild(firstChild);
-      //if(lastChild.asParagraph) docCell.removeChild(lastChild);
-    }
-  } else {
-    docCell.setText(content);
-  }
-};
-
-// Helper function to detect if a string contains a hyperlink
-const isHyperlink = (text) => {
-  const urlPattern = /(https?:\/\/[^\s]+)/g;
-  return urlPattern.test(text);
-};
-
-// Extract link text and URL from the content
-const extractLinkData = (text) => {
-  const urlPattern = /(https?:\/\/[^\s]+)/g;
-  const urlMatch = text.match(urlPattern);
-  if (urlMatch && urlMatch.length > 0) {
-    const url = urlMatch[0];
-    const linkText = text.replace(url, "").trim();
-    return { text: linkText || url, url };
-  }
-  return { text, url: "" };
-};
-
-const isHtml = (content) => {
-  return /<\/?[a-z][\s\S]*>/i.test(content);
-};
-
-const sanitizeHtml = (html) => {
-  const allowedTags = [
-    "b",
-    "i",
-    "u",
-    "ul",
-    "ol",
-    "li",
-    "div",
-    "p",
-    "br",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-  ];
-  return html.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag) => {
-    return allowedTags.includes(tag.toLowerCase()) ? match : "";
-  });
-};
-
+/**
+ * Recursively converts XML/HTML elements to Google Docs formatting
+ * @param {GoogleAppsScript.Document.Element} parent - Target document element
+ * @param {GoogleAppsScript.XML_Service.Element} element - Source XML element
+ * @param {Object} styles - Current text styling state
+ */
 const processElement = (
   parent,
   element,
@@ -396,49 +424,4 @@ const processElement = (
     if (!["p", "div"].includes(type))
       styles = { bold: false, underline: false, italic: false };
   });
-};
-
-// Function to append headers with specific formatting
-const appendHeader = (paragraph, text, headerType) => {
-  const headers = {
-    h1: DocumentApp.ParagraphHeading.HEADING1,
-    h2: DocumentApp.ParagraphHeading.HEADING2,
-    h3: DocumentApp.ParagraphHeading.HEADING3,
-    h4: DocumentApp.ParagraphHeading.HEADING4,
-    h5: DocumentApp.ParagraphHeading.HEADING5,
-    h6: DocumentApp.ParagraphHeading.HEADING6,
-  };
-  paragraph.setHeading(headers[headerType]);
-  paragraph.appendText(text);
-};
-
-// Function to append styled text with specific formatting
-const appendStyledText = (paragraph, text, styles) => {
-  let textElement = paragraph.appendText(text);
-  if (styles.bold) textElement.setBold(true);
-  if (styles.italic) textElement.setItalic(true);
-  if (styles.underline) textElement.setUnderline(true);
-};
-
-// Functions for processing lists and list items
-const processList = (parent, listElement, isUnordered, nestLevel = 0) => {
-  listElement.getChildren().forEach((child) => {
-    if (child.getName() === "li") {
-      appendListItem(parent, child.getText(), isUnordered, nestLevel);
-    } else if (child.getName() === "ul" || child.getName() === "ol") {
-      processList(parent, child, isUnordered, nestLevel++);
-    }
-  });
-};
-
-const appendListItem = (parent, text, isUnordered, nestLevel = 0) => {
-  const listItem = parent.appendListItem(text);
-  listItem.setGlyphType(
-    isUnordered ? DocumentApp.GlyphType.BULLET : DocumentApp.GlyphType.NUMBER,
-  );
-  listItem.editAsText().setFontSize(FontSize);
-  if (nestLevel.length > 0) {
-    const textElement = listItem.editAsText();
-    textElement.insertText(0, "\t".repeat(nestLevel));
-  }
 };
