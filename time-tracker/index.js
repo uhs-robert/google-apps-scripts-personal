@@ -54,21 +54,7 @@ const setElapsedTime = ({ startTime, endTime, cellElapsedTime }) => {
   cellElapsedTime.setValue(prevElapsedTime + newElapsedTime);
 };
 
-const showExportPDFDialog = () => {
-  const companyNames = getcompanyNames(); // Fetch project names
-  const template = HtmlService.createTemplateFromFile("ExportForm");
-  template.companyNames = companyNames; // Pass project names to the template
-  const htmlOutput = template
-    .evaluate()
-    //.setWidth(650)
-    .setHeight(230);
-  SpreadsheetApp.getUi().showModalDialog(
-    htmlOutput,
-    "Export Time Entries to PDF",
-  );
-};
-
-const getcompanyNames = () => {
+const getCompanyNames = () => {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const namedRange = spreadsheet.getRangeByName("companyNames");
   const companyNames = namedRange
@@ -108,4 +94,18 @@ const createCompanyDropdown = () => {
     .map((company) => `<option value="${company}">${company}</option>`)
     .join("");
   return optionsHtml;
+};
+
+const showExportPDFDialog = () => {
+  const companyNames = getCompanyNames(); // Fetch project names
+  const template = HtmlService.createTemplateFromFile("ExportForm");
+  template.companyNames = companyNames;
+  const htmlOutput = template
+    .evaluate()
+    //.setWidth(650)
+    .setHeight(230);
+  SpreadsheetApp.getUi().showModalDialog(
+    htmlOutput,
+    "Export Time Entries to PDF",
+  );
 };
