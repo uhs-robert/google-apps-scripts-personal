@@ -85,6 +85,66 @@ const showDialog = (title, message) => {
 
 // === General Utilities ================================================
 /**
+ * Creates standardized filename for time tracking reports
+ * @param {Object} Dates - Date information object from getDates()
+ * @param {string} companyName - Company name for filename
+ * @returns {string} Formatted filename without extension
+ */
+const generateFileName = (Dates, companyName) => {
+  return `${companyName}_${Dates.formattedStart}_to_${Dates.formattedEnd}_Time_Tracking_Report`;
+};
+
+/**
+ * P,erforms template placeholder replacement in document sections
+ * @param {GoogleAppsScript.Document.Body|GoogleAppsScript.Document.HeaderSection} source - Document section to update
+ * @param {Object} Dates - Date formatting object
+ * @param {Object} Info - Company and project information
+ */
+const replaceText = (source, Dates, Info) => {
+  const replacements = {
+    "{{companyName}}": Info.companyName,
+    "{{totalHours}}": Info.totalHours,
+    "{{projectName}}": Info.projectName,
+    "{{startDate}}": Dates.formattedStart,
+    "{{endDate}}": Dates.formattedEnd,
+    "{{todayLong}}": Dates.todayLong,
+    "{{todayShort}}": Dates.todayShort,
+  };
+
+  Object.keys(replacements).forEach((key) => {
+    source.replaceText(key, replacements[key]);
+  });
+};
+
+/**
+ * Removes unsafe HTML tags while preserving formatting elements
+ * @param {string} html - Raw HTML content
+ * @returns {string} Sanitized HTML with only allowed tags
+ */
+const sanitizeHtml = (html) => {
+  const allowedTags = [
+    "b",
+    "i",
+    "u",
+    "ul",
+    "ol",
+    "li",
+    "div",
+    "p",
+    "br",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+  ];
+  return html.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag) => {
+    return allowedTags.includes(tag.toLowerCase()) ? match : "";
+  });
+};
+
+/**
  * Extracts and formats date range information from time tracking data
  * @param {Array[]} data - Filtered time tracking rows
  * @returns {Object} Date object with formatted strings for template replacement
@@ -157,7 +217,7 @@ const isMarkdown = (content) => {
     /`.*?`/,                // Inline code: `code`
     /^\s*[-*+]\s+/m,        // Unordered lists: - * +
     /^\s*\d+\.\s+/m,        // Ordered lists: 1. 2.
-    /\[.*?\]\(.*?\)/,       // Links: [text](url)
+    /.*\]\(.*\)/,       // Links: [text](url)
     /^>\s+/m,               // Blockquotes: > text
     /```[\s\S]*?```/,       // Code blocks: ```code```
   ];
@@ -295,7 +355,7 @@ const parseInlineMarkdown = (text) => {
   
   // Define inline patterns with priority order
   const patterns = [
-    { regex: /\[([^\]]+)\]\(([^)]+)\)/, type: 'link', groups: ['text', 'url'] },
+    { regex: /.*\]\(.*\)/, type: 'link', groups: ['text', 'url'] },
     { regex: /`([^`]+)`/, type: 'code', groups: ['text'] },
     { regex: /\*\*([^*]+)\*\*/, type: 'bold', groups: ['text'] },
     { regex: /\*([^*]+)\*/, type: 'italic', groups: ['text'] },
