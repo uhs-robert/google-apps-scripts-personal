@@ -1,0 +1,21 @@
+{
+  "timeZone": "America/New_York",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/drive"
+  ],
+  "addOns": {
+    "common": {
+      "name": "UpHill Solutions - Google Docs",
+      "logoUrl": "https://www.uphillsolutions.tech/wp-content/uploads/2024/07/UpHill-Main-Logo-Transparent-bg.svg"
+    },
+    "docs": {
+      "onFileScopeGrantedTrigger": {
+        "runFunction": "onOpen"
+      }
+    }
+  }
+}
