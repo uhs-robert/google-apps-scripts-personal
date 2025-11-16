@@ -12,20 +12,74 @@ The goal is to have the add-on pre-approved by an admin and automatically availa
 
 ## Step 1: Prepare the Apps Script Project
 
-This involves two files: the script itself (Code.gs) and its manifest (appsscript.json).
+You need, at least, two files: the manifest (appsscript.json) and any script (Code.gs) files.
 
-### Include the Manifest (appsscript.json)
+### The Manifest (appsscript.json)
 
-This file defines what your add-on is, what permissions it needs, and how it runs. Your manifest must include the addOns block to be recognized as an Editor Add-on.
+This file defines what your add-on is, what permissions it needs, and how it runs. For a menu-based Editor add-on, you only need to specify basic settings and OAuth scopes - the `onOpen(e)` trigger is automatically detected by Apps Script.
+
+**Example appsscript.json:**
+
+```json
+{
+  "timeZone": "America/New_York",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/drive"
+  ]
+}
+```
+
+**Note:** Unlike CardService-based Google Workspace add-ons, menu-based Editor add-ons do NOT require an `addOns` block in the manifest. The `onOpen(e)` simple trigger works automatically.
 
 ### The Code (Code.gs)
 
-Your script must contain the onOpen(e) function specified in the manifest. This function is responsible for building the menu that appears in Google Docs.
+Your script must contain an `onOpen(e)` function. This function is responsible for building the menu that appears in Google Docs.
 
 **Important:**
 
 - The function **must** accept the event object (e).
-- The onOpen function should _only_ build the menu. Do not call any services that require authorization (like PropertiesService) here, as it will cause the function to fail silently.
+- It **must** use `createAddonMenu()` to build the menu, not `createMenu()`.
+- Check the authorization mode before calling any services that require authorization (like PropertiesService), as attempting unauthorized operations will cause the function to fail silently.
+
+**Example Code.gs:**
+
+```javascript
+/**
+ * Runs when the document is opened by a user.
+ * @param {object} e The event object.
+ */
+function onOpen(e) {
+  // Build the menu - this works in all authorization modes
+  DocumentApp.getUi()
+    .createAddonMenu()
+    .addItem('Run Main Function', 'runMyScript')
+    .addSeparator()
+    .addItem('Show Sidebar', 'showSidebar')
+    .addToUi();
+}
+
+/**
+ * The main function called from the add-on menu.
+ */
+function runMyScript() {
+  // All your script's logic goes here.
+  // This function runs with full authorization.
+  const ui = DocumentApp.getUi();
+  ui.alert('The UpHill script ran successfully!');
+}
+
+/**
+ * A function to open a sidebar.
+ */
+function showSidebar() {
+  const html = HtmlService.createHtmlOutput('<h3>UpHill Sidebar</h3>')
+    .setTitle('UpHill Solutions');
+  DocumentApp.getUi().showSidebar(html);
+}
+```
 
 ## Step 2: Create and Configure the GCP Project
 
