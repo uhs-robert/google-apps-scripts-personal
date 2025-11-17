@@ -4,12 +4,12 @@
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "oauthScopes": [
-    "https://www.googleapis.com/auth/documents",
-    "https://www.googleapis.com/auth/drive"
+    "https://www.googleapis.com/auth/documents.currentonly",
+    "https://www.googleapis.com/auth/script.container.ui"
   ],
   "addOns": {
     "common": {
-      "name": "UpHill Solutions - Google Docs",
+      "name": "UpHill Solutions Add Ons",
       "logoUrl": "https://www.uphillsolutions.tech/wp-content/uploads/2024/07/UpHill-Main-Logo-Transparent-bg.svg"
     },
     "docs": {
