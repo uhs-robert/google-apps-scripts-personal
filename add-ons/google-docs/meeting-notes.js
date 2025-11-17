@@ -53,5 +53,5 @@ function formatMeetingNotes() {
 
   insertTextBefore(body, "Notes", "@ai");
 
-  deleteSection(body, "Action items", 2);
+  deleteSection(body, "Action items", 4);
 }
