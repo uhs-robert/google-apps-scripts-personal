@@ -88,3 +88,20 @@ function deleteSection(body, sectionName, deleteNextParagraphs = 0) {
 
   return true;
 }
+
+/**
+ * Inserts text before the found search text.
+ * @param {GoogleAppsScript.Document.Body} body - The document body to search in
+ * @param {string} searchText - The text to search for
+ * @param {string} textToInsert - The text to insert before the found text
+ * @return {GoogleAppsScript.Document.Paragraph|null} The inserted paragraph, or null if search text not found
+ */
+function insertTextBefore(body, searchText, textToInsert) {
+  const foundText = body.findText(searchText);
+  if (!foundText) return null;
+
+  const paragraph = foundText.getElement().getParent().asParagraph();
+  const index = body.getChildIndex(paragraph);
+
+  return body.insertParagraph(index, textToInsert);
+}

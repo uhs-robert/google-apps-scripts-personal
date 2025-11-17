@@ -41,6 +41,8 @@ function formatMeetingNotes() {
   doc.setName(titleTextToInsert);
   updateDocumentHeader(doc, titleTextToInsert);
 
+  insertTextBefore(body, "Notes", "@ai");
+
   const sections = [
     {
       name: "Notes",
