@@ -57,13 +57,13 @@ function formatSection(body, section) {
 }
 
 /**
- * Deletes a section and optionally the paragraph underneath it.
+ * Deletes a section and optionally N paragraphs underneath it.
  * @param {GoogleAppsScript.Document.Body} body - The document body containing the section
  * @param {string} sectionName - The section name to search for and delete
- * @param {boolean} [deleteNextParagraph=false] - Whether to delete the paragraph underneath the section
+ * @param {number} [deleteNextParagraphs=0] - Number of paragraphs to delete after the section (0 = none)
  * @return {boolean} True if the section was found and deleted, false otherwise
  */
-function deleteSection(body, sectionName, deleteNextParagraph = false) {
+function deleteSection(body, sectionName, deleteNextParagraphs = 0) {
   const foundText = body.findText(sectionName);
   if (!foundText) return false;
 
@@ -72,13 +72,17 @@ function deleteSection(body, sectionName, deleteNextParagraph = false) {
 
   paragraph.removeFromParent();
 
-  if (deleteNextParagraph) {
+  for (let i = 0; i < deleteNextParagraphs; i++) {
     const numChildren = body.getNumChildren();
     if (index < numChildren) {
       const nextElement = body.getChild(index);
       if (nextElement.getType() === DocumentApp.ElementType.PARAGRAPH) {
         nextElement.removeFromParent();
+      } else {
+        break; // Stop if we encounter a non-paragraph element
       }
+    } else {
+      break; // Stop if we've reached the end of the document
     }
   }
 
