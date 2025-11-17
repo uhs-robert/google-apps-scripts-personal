@@ -1,6 +1,15 @@
 // add-ons/google-docs/Code.js
 
 /**
+ * Updating this Add On:
+ * Deploy a new version after saving changes (Note the version number)
+ * Go to App Configuration in Google Workspace Marketplace SDK: https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=uphill-solutions-add-on
+ * In the "App Configuration" section, update add-on script version.
+ * Click [Save Draft]
+ * Go to "Store Listing" tab, click [Publish]
+/*
+
+/**
  * Main function to create the add-on menu.
  * This runs when the document is opened or the add-on is installed.
  * @param {object} e - The event object.
