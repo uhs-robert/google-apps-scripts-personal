@@ -7,9 +7,9 @@
 function sendUserPrompt(message) {
   const ui = DocumentApp.getUi();
   const response = ui.prompt(message, ui.ButtonSet.OK_CANCEL);
-  if (response.getSelectedButton() === ui.Button.OK) {
+  if (response.getSelectedButton() === ui.Button.OK)
     return response.getResponseText();
-  }
+
   return null;
 }
 
@@ -48,9 +48,7 @@ function formatSection(body, section) {
   const paragraph = foundText.getElement().getParent().asParagraph();
   const index = body.getChildIndex(paragraph);
 
-  if (section.addHR) {
-    body.insertHorizontalRule(index);
-  }
+  if (section.addHR) body.insertHorizontalRule(index);
 
   paragraph.setFontFamily(section.font).setHeading(section.heading);
   return true;
@@ -74,16 +72,12 @@ function deleteSection(body, sectionName, deleteNextParagraphs = 0) {
 
   for (let i = 0; i < deleteNextParagraphs; i++) {
     const numChildren = body.getNumChildren();
-    if (index < numChildren) {
-      const nextElement = body.getChild(index);
-      if (nextElement.getType() === DocumentApp.ElementType.PARAGRAPH) {
-        nextElement.removeFromParent();
-      } else {
-        break; // Stop if we encounter a non-paragraph element
-      }
-    } else {
-      break; // Stop if we've reached the end of the document
-    }
+    if (index > numChildren) break;
+
+    const nextElement = body.getChild(index);
+    if (nextElement.getType() !== DocumentApp.ElementType.PARAGRAPH) break;
+
+    nextElement.removeFromParent();
   }
 
   return true;

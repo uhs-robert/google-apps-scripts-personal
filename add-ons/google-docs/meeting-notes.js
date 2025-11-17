@@ -53,5 +53,5 @@ function formatMeetingNotes() {
   ];
   sections.forEach((section) => formatSection(body, section));
 
-  deleteSection(body, "Action items", true);
+  deleteSection(body, "Action items", 2);
 }
