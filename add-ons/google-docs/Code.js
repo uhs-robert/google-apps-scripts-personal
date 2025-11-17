@@ -4,13 +4,30 @@
 // See README.md for details on menu-based Editor add-on best practices
 
 /**
- * Adds a custom menu to the Google Docs UI, with custom scripts.
- * This function is triggered on document open.
- * @return {void}
+ * Main function to create the add-on menu.
+ * This runs when the document is opened or the add-on is installed.
+ * @param {object} e - The event object.
  */
-function onOpen() {
+function onOpen(e) {
   const ui = DocumentApp.getUi();
-  ui.createMenu("Scripts")
+  const menu = ui.createAddonMenu("UpHill Solutions Add Ons");
+
+  if (e && e.authMode == ScriptApp.AuthMode.NONE) {
+    menu.addItem("Start & Authorize", "showAuthPrompt");
+  } else {
+    buildFullMenu(menu);
+  }
+  menu.addToUi();
+}
+
+/**
+ * Creates the full menu items for the add-on.
+ * @param {GoogleAppsScript.Base.Menu} menu - The parent menu object.
+ */
+function buildFullMenu(menu) {
+  const ui = DocumentApp.getUi();
+
+  menu
     .addSubMenu(
       ui
         .createMenu("Templates")
@@ -29,6 +46,25 @@ function onOpen() {
           "Calculate Cost for Milestones",
           "calculateAndUpdateWithDynamicRate",
         ),
-    )
-    .addToUi();
+    );
+}
+
+/**
+ * Shows a simple prompt to trigger the authorization flow.
+ */
+function showAuthPrompt() {
+  const ui = DocumentApp.getUi();
+  const response = ui.alert(
+    "Authorization Required",
+    "This add-on needs your permission to run. Please click OK to authorize, then run the 'Start' menu again.",
+    ui.ButtonSet.OK,
+  );
+
+  try {
+    DocumentApp.getActiveDocument();
+  } catch (e) {
+    ui.alert(
+      "Authorization may not have completed. Please try running 'Start & Authorize' again.",
+    );
+  }
 }
