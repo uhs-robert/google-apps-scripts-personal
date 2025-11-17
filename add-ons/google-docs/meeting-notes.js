@@ -54,4 +54,6 @@ function formatMeetingNotes() {
   insertTextBefore(body, "Notes", "@ai");
 
   deleteSection(body, "Action items", 4);
+
+  body.replaceText("{{Meeting}}", "Meeting Notes");
 }
