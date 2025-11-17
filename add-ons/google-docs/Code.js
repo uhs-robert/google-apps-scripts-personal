@@ -1,4 +1,4 @@
-// google-docs/Code.js
+// add-ons/google-docs/Code.js
 
 // TODO: For published add-ons, use createAddonMenu() instead of createMenu()
 // See README.md for details on menu-based Editor add-on best practices
@@ -14,29 +14,20 @@ function onOpen() {
     .addSubMenu(
       ui
         .createMenu("Templates")
-        .addItem(
-          "Format Meeting Notes",
-          "GoogleDocsScripts.formatMeetingNotes",
-        ),
+        .addItem("Format Meeting Notes", "formatMeetingNotes"),
     )
     .addSubMenu(
       ui
         .createMenu("Formatting")
-        .addItem(
-          "Remove Empty Paragraphs",
-          "GoogleDocsScripts.removeEmptyParagraphs",
-        )
-        .addItem(
-          "Convert Heading to Title Case",
-          "GoogleDocsScripts.convertHeadingsToTitleCase",
-        ),
+        .addItem("Remove Empty Paragraphs", "removeEmptyParagraphs")
+        .addItem("Convert Heading to Title Case", "convertHeadingsToTitleCase"),
     )
     .addSubMenu(
       ui
         .createMenu("Utilities")
         .addItem(
           "Calculate Cost for Milestones",
-          "GoogleDocsScripts.calculateAndUpdateWithDynamicRate",
+          "calculateAndUpdateWithDynamicRate",
         ),
     )
     .addToUi();
