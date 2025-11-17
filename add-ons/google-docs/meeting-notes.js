@@ -41,8 +41,6 @@ function formatMeetingNotes() {
   doc.setName(titleTextToInsert);
   updateDocumentHeader(doc, titleTextToInsert);
 
-  insertTextBefore(body, "Notes", "@ai");
-
   const sections = [
     {
       name: "Notes",
@@ -52,6 +50,8 @@ function formatMeetingNotes() {
     },
   ];
   sections.forEach((section) => formatSection(body, section));
+
+  insertTextBefore(body, "Notes", "@ai");
 
   deleteSection(body, "Action items", 2);
 }
