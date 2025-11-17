@@ -39,7 +39,7 @@ function formatMeetingNotes() {
   const meetingDate = getMeetingDate(body);
   const titleTextToInsert = `${meetingDate} - Meeting Notes`;
   doc.setName(titleTextToInsert);
-  updateDocumentHeader(doc, titleTextToInsert);
+  updateDocumentHeader(doc, titleTextToInsert, 10);
 
   const sections = [
     {

@@ -17,9 +17,10 @@ function sendUserPrompt(message) {
  * Updates the document header by replacing {TITLE} placeholder with the provided title.
  * @param {GoogleAppsScript.Document.Document} doc - The document to update
  * @param {string} title - The title text to insert
+ * @param {number} [fontSize] - Optional font size to apply to the title
  * @return {boolean} True if the header was updated, false otherwise
  */
-function updateDocumentHeader(doc, title) {
+function updateDocumentHeader(doc, title, fontSize) {
   const header = doc.getHeader();
   if (!header) return false;
 
@@ -28,6 +29,9 @@ function updateDocumentHeader(doc, title) {
 
   const titleElement = titleText.getElement().asText();
   titleElement.setText(title);
+
+  if (fontSize) titleElement.setFontSize(fontSize);
+
   return true;
 }
 
