@@ -1,5 +1,15 @@
 // add-ons/google-docs/statement-of-work.js
 
+// Data tables
+const ODSA = {
+  milestone_columns: {
+    milestone: 0,
+    description: 1,
+    time: 2,
+    cost: 3,
+  },
+};
+
 /**
  * Main function to set rate, calculate costs, and update totals in the document.
  */
@@ -62,31 +72,19 @@ function calculateCostsAndTotalsFromTable(table, rate) {
   let totalTime = 0;
   let totalCost = 0;
 
-  // Assume the table structure:
-  // Row 1: Headers (e.g., "Milestone", "Description", "Est. Time (hours)", "Est. Cost")
-  // Subsequent rows: Milestone data
-  const Columns = {
-    milestone: 0,
-    description: 1,
-    time: 2,
-    cost: 3,
-  };
   for (let i = 1; i < table.getNumRows() - 1; i++) {
     const row = table.getRow(i);
+    const estTimeCell = row.getCell(ODSA.milestone_columns.time);
+    const estCostCell = row.getCell(ODSA.milestone_columns.cost);
 
-    // Extract estimated time from the third column (0-based) and produce estimate
-    const estTimeText = row.getCell(2).getText();
-    const estTime = parseFloat(estTimeText.replace(/[^\d.]/g, "")) || 0;
-    const estCost = estTime * rate;
+    const estTimeString = estTimeCell.getText();
+    const estTimeNum = parseFloat(estTimeString.replace(/[^\d.]/g, "")) || 0;
+    const estCost = estTimeNum * rate;
 
-    // Format cost with commas and set it in the document (4th column)
-    row
-      .getCell(3)
-      .setText(
-        `$${estCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-      );
+    estCostCell.setText(
+      `$${estCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+    );
 
-    // Accumulate total time and total cost
     totalTime += estTime;
     totalCost += estCost;
   }
@@ -103,11 +101,11 @@ function calculateCostsAndTotalsFromTable(table, rate) {
  * @param {Object} totals - The totals to be displayed, containing totalTime and totalCost.
  */
 function updateTotalRow(table, totals) {
-  const lastRow = table.getRow(table.getNumRows() - 1); // Last row for totals
-  lastRow.getCell(2).setText(`${totals.totalTime} hour(s)`); // Update total time cell
-  lastRow
-    .getCell(3)
-    .setText(
-      `$${totals.totalCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-    );
+  const lastRow = table.getRow(table.getNumRows() - 1);
+  const totalTimeCell = lastRow.getCell(ODSA.milestone_columns.time);
+  const totalCostCell = lastRow.getCell(ODSA.milestone_columns.cost);
+  totalTimeCell.setText(`${totals.totalTime} hour(s)`);
+  totalCostCell.setText(
+    `$${totals.totalCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+  );
 }
