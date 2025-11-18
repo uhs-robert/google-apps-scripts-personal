@@ -4,6 +4,7 @@ const onOpen = () => {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu("Export")
     .addItem("Export Time Entries to PDF", "showExportPDFDialog")
+    .addItem("Export Invoice to PDF", "showInvoiceExportDialog")
     .addToUi();
 };
 
