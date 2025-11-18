@@ -1,3 +1,4 @@
+// sheets/time-tracker/document-generator.js
 // time-tracker/document-generator.js
 
 // === Document Generation ================================================
@@ -41,7 +42,7 @@ const appendStyledText = (paragraph, text, styles) => {
  * @param {boolean} isUnordered - List type (bullet vs numbered)
  * @param {number} nestLevel - Indentation level
  */
-const processList = (parent, listElement, isUnordered, nestLevel = 0) => {
+const processList = (parent, listElement, isUnordered, nestLevel = 1) => {
   listElement.getChildren().forEach((child) => {
     if (child.getName() === "li") {
       appendListItem(parent, child.getText(), isUnordered, nestLevel);
