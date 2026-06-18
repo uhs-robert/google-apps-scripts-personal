@@ -13,17 +13,21 @@ Automatic time tracking system with PDF export for Google Sheets.
 ## ⚙️ Setup
 
 **Named Ranges:**
+
 - `assignmentStatus` - Status column
 - `companyNames` - List of companies
 - `companyProjects` - Company to project mapping
 
 **Sheet Structure:**
+
 - Create sheet named "🕑 Time" with columns: Pay Rate, Company, Project, Title, Description (HTML supported), Links, Status, Start Time, Minutes
 
 **Template:**
+
 - Create Google Docs template with placeholders: `{{companyName}}`, `{{totalHours}}`, `{{formattedStart}}`, `{{formattedEnd}}`
 
 **Configuration:**
+
 - Update `templateDocId` and `destFolderId` in `document-config.js`
 
 ## 📁 Project Structure
@@ -42,10 +46,12 @@ Automatic time tracking system with PDF export for Google Sheets.
 ## 🚀 Usage
 
 **Time Tracking:**
+
 1. Change task status to "In Progress" to start tracking
 2. Mark task complete to calculate elapsed time
 
 **Generating Reports:**
+
 1. Export > Export Time Entries to PDF
 2. Select company and project
 3. Click Export

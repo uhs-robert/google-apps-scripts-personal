@@ -145,6 +145,6 @@ function getInvoicesForDialog() {
     };
   });
 
-  // Reverse the array so newest invoices appear first
-  return invoiceList.reverse();
+  // Reverse the array so newest invoices appear first, filtering out PIF invoices
+  return invoiceList.filter(inv => !invoices[inv.rowNumber - 1][InvoiceColIndex.PIF]).reverse();
 }
