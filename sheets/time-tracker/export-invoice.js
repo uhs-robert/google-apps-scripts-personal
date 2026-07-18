@@ -57,8 +57,10 @@ function exportInvoice(rowNumber, includeFee = false) {
     return {
       success: true,
       pdfUrl: pdfFile.getUrl(),
+      pdfFileId: pdfFile.getId(),
       invoiceNumber: invoiceNumber,
       client: invoiceData.client,
+      invoiceData: invoiceData,
     };
   } catch (error) {
     Logger.log("Error exporting invoice: " + error.toString());
@@ -173,7 +175,7 @@ function updateInvoicePlaceholders(
   }
 
   // Build subject line
-  const subject = `${invoiceData.projectTitle}: ${invoiceData.hoursUsed} hours`;
+  const subject = `${invoiceData.projectTitle}: ${invoiceData.hoursTotal} hours`;
 
   // Create replacements object
   const replacements = {
@@ -258,7 +260,9 @@ function replaceInvoiceText(doc, replacements) {
           const childText = child.getText ? child.getText() : "N/A";
           Logger.log("Header child[" + i + "] text: " + childText);
         } catch (e) {
-          Logger.log("Header child[" + i + "] could not get text: " + e.message);
+          Logger.log(
+            "Header child[" + i + "] could not get text: " + e.message,
+          );
         }
       }
 
@@ -535,11 +539,43 @@ function handleInvoiceExport(rowNumber, includeFee = false) {
       success: true,
       message: `Invoice ${result.invoiceNumber} generated successfully!`,
       pdfUrl: result.pdfUrl,
+      pdfFileId: result.pdfFileId,
+      invoiceNumber: result.invoiceNumber,
+      rowNumber: rowNumber,
+      includeFee: includeFee,
     };
   } catch (error) {
     return {
       success: false,
       message: "Error generating invoice: " + error.toString(),
     };
+  }
+}
+
+/**
+ * Sends the invoice email for an already-exported PDF.
+ * Called separately after the user previews the PDF.
+ * @param {number} rowNumber - Invoice row number
+ * @param {boolean} includeFee - Whether processing fee was included
+ * @param {string} pdfFileId - Drive file ID of the exported PDF
+ * @param {string} pdfUrl - Drive URL for the View Invoice button
+ * @returns {Object} Result object
+ */
+function handleSendInvoiceEmail(rowNumber, includeFee, pdfFileId, pdfUrl) {
+  try {
+    const invoiceData = getInvoiceByRow(rowNumber);
+    const invoiceNumber = generateInvoiceNumber(
+      invoiceData.year,
+      invoiceData.client,
+      rowNumber,
+      includeFee,
+    );
+    const pdfBlob = DriveApp.getFileById(pdfFileId).getBlob();
+
+    sendInvoiceEmail(invoiceData, invoiceNumber, includeFee, pdfBlob, pdfUrl);
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.toString() };
   }
 }

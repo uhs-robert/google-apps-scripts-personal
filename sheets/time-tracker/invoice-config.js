@@ -65,5 +65,6 @@ const InvoiceColIndex = {
   TAX: 19, // T - Tax amount
   NET: 20, // U - Net amount (your after-tax take home - NOT used on invoice)
   REPORT: 21, // V - Report
-  NOTES: 22, // W - Notes
+  EMAIL_TO: 22, // W - Notes
+  NOTES: 23, // X - Notes
 };

@@ -173,6 +173,7 @@
         </div>
       </form>
       <div id="successMessage" class="success-message"></div>
+      <div id="emailMessage" style="display:none; margin-top:10px; padding:10px; background:#d4edda; border:1px solid #c3e6cb; border-radius:4px; color:#155724; text-align:center; width:100%; box-sizing:border-box; font-size:13px;"></div>
       <div id="errorMessage" class="error-message"></div>
     </div>
     <script>
@@ -240,22 +241,60 @@
           .handleInvoiceExport(rowNumber, includeFee);
       };
 
+      let _lastResult = null;
+
       const handleSuccess = (result) => {
         hideSpinner();
 
         if (result.success) {
+          _lastResult = result;
           const successDiv = document.getElementById("successMessage");
           successDiv.innerHTML = `
             ${result.message}<br>
-            <a href="${result.pdfUrl}" target="_blank">Open Invoice PDF</a>
+            <a href="${result.pdfUrl}" target="_blank">Open Invoice PDF</a><br><br>
+            <button type="button" class="submit-button secondary" style="width:auto; padding:8px 16px; font-size:13px; margin:0 auto;" onclick="sendEmail()">
+              Send Email to Client
+            </button>
           `;
           successDiv.style.display = "block";
-
-          // Reset form
           document.getElementById("invoiceSelect").selectedIndex = 0;
         } else {
           showError(result.message);
         }
+      };
+
+      const sendEmail = () => {
+        if (!_lastResult) return;
+        const btn = document.querySelector('#successMessage .submit-button');
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            btn.disabled = false;
+            btn.textContent = 'Send Email to Client';
+            const emailMsg = document.getElementById("emailMessage");
+            if (res.success) {
+              emailMsg.textContent = 'Email sent to client.';
+            } else {
+              emailMsg.textContent = 'Email failed: ' + (res.message || 'unknown error');
+              emailMsg.style.background = '#f8d7da';
+              emailMsg.style.borderColor = '#f5c6cb';
+              emailMsg.style.color = '#721c24';
+            }
+            emailMsg.style.display = 'block';
+          })
+          .withFailureHandler((err) => {
+            btn.disabled = false;
+            btn.textContent = 'Send Email to Client';
+            const emailMsg = document.getElementById("emailMessage");
+            emailMsg.textContent = 'Email failed: ' + (err.message || err.toString());
+            emailMsg.style.background = '#f8d7da';
+            emailMsg.style.borderColor = '#f5c6cb';
+            emailMsg.style.color = '#721c24';
+            emailMsg.style.display = 'block';
+          })
+          .handleSendInvoiceEmail(_lastResult.rowNumber, _lastResult.includeFee, _lastResult.pdfFileId, _lastResult.pdfUrl);
       };
 
       const handleError = (error) => {

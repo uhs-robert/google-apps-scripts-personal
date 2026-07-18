@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice from UpHill Solutions</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #fbfbfb;
+      font-family: Arial, Helvetica, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    "
+  >
+    <div style="background: #fbfbfb">
+      <!-- Logo area -->
+      <div style="padding: 3% 3% 1% 3%">
+        <img
+          src="cid:logo"
+          alt="UpHill Solutions"
+          width="150"
+          style="max-width: 150px; height: auto; display: block"
+        />
+      </div>
+
+      <!-- Invoice banner -->
+      <div style="padding: 3%; text-align: center; background: #1582c7">
+        <div style="color: #ffffff; font-size: 20px; font-weight: 500">
+          Invoice #<?= invoiceNumber ?>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div style="max-width: 560px; margin: auto; padding: 0 3%">
+        <!-- Greeting -->
+        <div
+          style="
+            padding: 30px 0;
+            color: #555555;
+            line-height: 1.7;
+            font-size: 14px;
+          "
+        >
+          Dear <?= client ?>,<br />
+          <br />
+          Thank you for your business. Please find your invoice attached to this
+          email. You can also view, print, and download it as a PDF using the
+          link below.
+        </div>
+
+        <!-- Invoice summary card -->
+        <div
+          style="
+            padding: 3%;
+            background: #fefff1;
+            border: 1px solid #e8deb5;
+            color: #333333;
+          "
+        >
+          <!-- Amount -->
+          <div
+            style="
+              padding: 0 3% 3%;
+              border-bottom: 1px solid #e8deb5;
+              text-align: center;
+            "
+          >
+            <h4
+              style="
+                margin: 0 0 4px 0;
+                font-size: 13px;
+                font-weight: 600;
+                color: #555555;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              "
+            >
+              Invoice Amount
+            </h4>
+            <h2 style="color: #0a7c40; margin: 10px 0 0 0; font-size: 28px">
+              $<?= totalDue ?>
+            </h2>
+          </div>
+
+          <!-- Invoice details -->
+          <div
+            style="
+              margin: auto;
+              max-width: 350px;
+              padding: 3%;
+              font-size: 14px;
+              line-height: 1.9;
+            "
+          >
+            <p style="margin: 0">
+              <span
+                style="
+                  width: 40%;
+                  padding-left: 10%;
+                  float: left;
+                  color: #777777;
+                "
+                >Invoice No</span
+              >
+              <span style="width: 40%; padding-left: 10%; display: inline-block"
+                ><b><?= invoiceNumber ?></b></span
+              >
+            </p>
+            <p style="margin: 0; clear: both">
+              <span
+                style="
+                  width: 40%;
+                  padding-left: 10%;
+                  float: left;
+                  color: #777777;
+                "
+                >Invoice Date</span
+              >
+              <span style="width: 40%; padding-left: 10%; display: inline-block"
+                ><b><?= invoiceDateStr ?></b></span
+              >
+            </p>
+            <p style="margin: 0; clear: both">
+              <span
+                style="
+                  width: 40%;
+                  padding-left: 10%;
+                  float: left;
+                  color: #777777;
+                "
+                >Due Date</span
+              >
+              <span style="width: 40%; padding-left: 10%; display: inline-block"
+                ><b><?= dueDateStr ?></b></span
+              >
+            </p>
+            <? if (includeFee) { ?>
+            <p style="margin: 6px 0 0 0; clear: both">
+              <span
+                style="
+                  width: 40%;
+                  padding-left: 10%;
+                  float: left;
+                  color: #777777;
+                "
+                >Processing Fee</span
+              >
+              <span style="width: 40%; padding-left: 10%; display: inline-block"
+                ><b>$<?= processingFee ?></b></span
+              >
+            </p>
+            <? } ?>
+            <p style="margin: 6px 0 0 0; clear: both">
+              <span
+                style="
+                  width: 40%;
+                  padding-left: 10%;
+                  float: left;
+                  color: #777777;
+                "
+                >Subtotal</span
+              >
+              <span style="width: 40%; padding-left: 10%; display: inline-block"
+                ><b>$<?= subtotal ?></b></span
+              >
+            </p>
+          </div>
+
+          <!-- CTA button -->
+          <div style="text-align: center; margin: 25px 0 15px">
+            <a href="<?= pdfUrl ?>" style="text-decoration: none">
+              <span
+                style="
+                  background-color: #4caf50;
+                  border: 1px solid #45a049;
+                  cursor: pointer;
+                  text-align: center;
+                  min-width: 140px;
+                  color: #ffffff;
+                  display: inline-block;
+                  text-decoration: none;
+                  padding: 10px 24px;
+                  font-size: 14px;
+                  font-weight: 600;
+                  letter-spacing: 0.3px;
+                "
+                >VIEW INVOICE</span
+              >
+            </a>
+          </div>
+        </div>
+
+        <!-- Payment note -->
+        <div
+          style="
+            padding: 20px 0 4px 0;
+            font-size: 13px;
+            color: #777777;
+            line-height: 1.6;
+          "
+        >
+          <? if (includeFee) { ?> Payment links (Stripe &amp; PayPal) are
+          included in the attached invoice PDF. <? } else { ?> Payment terms:
+          <?= paymentTerms ?>. Refer to invoice PDF for ACH payment details. To
+          pay by card instead, please reply to this email and we'll send an
+          updated invoice with payment links. <? } ?>
+        </div>
+
+        <!-- Sign off -->
+        <div style="padding: 3% 0; line-height: 1.6; font-size: 14px">
+          Regards,
+          <div style="color: #8c8c8c; font-weight: 400">Robert Hill</div>
+          <div style="color: #b1b1b1">UpHill Solutions</div>
+          <div style="margin-top: 4px">
+            <a
+              href="mailto:robert.hill@uphillsolutions.tech"
+              style="color: #1582c7; font-size: 13px; text-decoration: none"
+              >robert.hill@uphillsolutions.tech</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

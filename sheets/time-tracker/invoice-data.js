@@ -67,6 +67,7 @@ function getInvoiceByRow(rowNumber) {
     tax: row[InvoiceColIndex.TAX],
     net: row[InvoiceColIndex.NET],
     report: row[InvoiceColIndex.REPORT],
+    emailTo: row[InvoiceColIndex.EMAIL_TO],
     notes: row[InvoiceColIndex.NOTES]
   };
 }
