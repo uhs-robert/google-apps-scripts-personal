@@ -87,7 +87,32 @@ function getOrCreateClientFolder(clientName) {
   const templateFolder = DriveApp.getFolderById(CLIENT_FOLDER_TEMPLATE_ID);
 
   // Copy the template folder
-  const newFolder = templateFolder.makeCopy(clientName, parentFolder);
+  const newFolder = copyFolder(templateFolder, clientName, parentFolder);
+
+  return newFolder;
+}
+
+/**
+ * Recursively copies a folder (Folder has no makeCopy method, unlike File)
+ * @param {Folder} sourceFolder - The folder to copy
+ * @param {string} newName - The name for the copied folder
+ * @param {Folder} destinationParent - The parent folder for the copy
+ * @returns {Folder} The newly created folder copy
+ */
+function copyFolder(sourceFolder, newName, destinationParent) {
+  const newFolder = destinationParent.createFolder(newName);
+
+  const files = sourceFolder.getFiles();
+  while (files.hasNext()) {
+    const file = files.next();
+    file.makeCopy(file.getName(), newFolder);
+  }
+
+  const folders = sourceFolder.getFolders();
+  while (folders.hasNext()) {
+    const folder = folders.next();
+    copyFolder(folder, folder.getName(), newFolder);
+  }
 
   return newFolder;
 }
