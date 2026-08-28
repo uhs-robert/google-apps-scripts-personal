@@ -85,7 +85,7 @@
         color: white;
       }
       .submit-button.secondary {
-        background: #2196F3;
+        background: #2196f3;
       }
       .submit-button.secondary:hover {
         background: #0b7dda;
@@ -153,27 +153,48 @@
   </head>
   <body>
     <div class="container">
-      <div class="instructions">
-        Select an invoice to generate a PDF
-      </div>
+      <div class="instructions">Select an invoice to generate a PDF</div>
       <form id="inputForm">
         <label for="invoiceSelect" class="required">Invoice</label>
         <select id="invoiceSelect" name="invoiceSelect" required>
           <option value="" disabled selected>Loading invoices...</option>
         </select>
         <div class="submit-container">
-          <button type="button" class="submit-button" onclick="submitForm(false)">
+          <button
+            type="button"
+            class="submit-button"
+            onclick="submitForm(false)"
+          >
             Standard Invoice
             <div class="spinner" id="spinner1"></div>
           </button>
-          <button type="button" class="submit-button secondary" onclick="submitForm(true)">
+          <button
+            type="button"
+            class="submit-button secondary"
+            onclick="submitForm(true)"
+          >
             With Processing Fee
             <div class="spinner" id="spinner2"></div>
           </button>
         </div>
       </form>
       <div id="successMessage" class="success-message"></div>
-      <div id="emailMessage" style="display:none; margin-top:10px; padding:10px; background:#d4edda; border:1px solid #c3e6cb; border-radius:4px; color:#155724; text-align:center; width:100%; box-sizing:border-box; font-size:13px;"></div>
+      <div
+        id="emailMessage"
+        style="
+          display: none;
+          margin-top: 10px;
+          padding: 10px;
+          background: #d4edda;
+          border: 1px solid #c3e6cb;
+          border-radius: 4px;
+          color: #155724;
+          text-align: center;
+          width: 100%;
+          box-sizing: border-box;
+          font-size: 13px;
+        "
+      ></div>
       <div id="errorMessage" class="error-message"></div>
     </div>
     <script>
@@ -187,7 +208,8 @@
 
       const populateInvoiceDropdown = (invoices) => {
         const select = document.getElementById("invoiceSelect");
-        select.innerHTML = '<option value="" disabled selected>Select an invoice</option>';
+        select.innerHTML =
+          '<option value="" disabled selected>Select an invoice</option>';
 
         invoices.forEach((invoice) => {
           const option = document.createElement("option");
@@ -219,7 +241,7 @@
 
         // Show loading state for all buttons
         const submitButtons = document.querySelectorAll(".submit-button");
-        submitButtons.forEach(button => {
+        submitButtons.forEach((button) => {
           button.classList.add("hide-text");
           button.disabled = true;
         });
@@ -233,7 +255,9 @@
         document.getElementById("successMessage").style.display = "none";
         document.getElementById("errorMessage").style.display = "none";
 
-        const rowNumber = parseInt(document.getElementById("invoiceSelect").value);
+        const rowNumber = parseInt(
+          document.getElementById("invoiceSelect").value,
+        );
 
         google.script.run
           .withSuccessHandler(handleSuccess)
@@ -253,7 +277,7 @@
             ${result.message}<br>
             <a href="${result.pdfUrl}" target="_blank">Open Invoice PDF</a><br><br>
             <button type="button" class="submit-button secondary" style="width:auto; padding:8px 16px; font-size:13px; margin:0 auto;" onclick="sendEmail()">
-              Send Email to Client
+              Create Email Draft
             </button>
           `;
           successDiv.style.display = "block";
@@ -265,36 +289,43 @@
 
       const sendEmail = () => {
         if (!_lastResult) return;
-        const btn = document.querySelector('#successMessage .submit-button');
+        const btn = document.querySelector("#successMessage .submit-button");
         btn.disabled = true;
-        btn.textContent = 'Sending…';
+        btn.textContent = "Creating draft…";
 
         google.script.run
           .withSuccessHandler((res) => {
             btn.disabled = false;
-            btn.textContent = 'Send Email to Client';
+            btn.textContent = "Create Email Draft";
             const emailMsg = document.getElementById("emailMessage");
             if (res.success) {
-              emailMsg.textContent = 'Email sent to client.';
+              emailMsg.innerHTML = `Draft created in Gmail, review and send manually.<br><a href="${res.draftUrl}" target="_blank">Open Draft in Gmail</a>`;
             } else {
-              emailMsg.textContent = 'Email failed: ' + (res.message || 'unknown error');
-              emailMsg.style.background = '#f8d7da';
-              emailMsg.style.borderColor = '#f5c6cb';
-              emailMsg.style.color = '#721c24';
+              emailMsg.textContent =
+                "Email failed: " + (res.message || "unknown error");
+              emailMsg.style.background = "#f8d7da";
+              emailMsg.style.borderColor = "#f5c6cb";
+              emailMsg.style.color = "#721c24";
             }
-            emailMsg.style.display = 'block';
+            emailMsg.style.display = "block";
           })
           .withFailureHandler((err) => {
             btn.disabled = false;
-            btn.textContent = 'Send Email to Client';
+            btn.textContent = "Send Email to Client";
             const emailMsg = document.getElementById("emailMessage");
-            emailMsg.textContent = 'Email failed: ' + (err.message || err.toString());
-            emailMsg.style.background = '#f8d7da';
-            emailMsg.style.borderColor = '#f5c6cb';
-            emailMsg.style.color = '#721c24';
-            emailMsg.style.display = 'block';
+            emailMsg.textContent =
+              "Email failed: " + (err.message || err.toString());
+            emailMsg.style.background = "#f8d7da";
+            emailMsg.style.borderColor = "#f5c6cb";
+            emailMsg.style.color = "#721c24";
+            emailMsg.style.display = "block";
           })
-          .handleSendInvoiceEmail(_lastResult.rowNumber, _lastResult.includeFee, _lastResult.pdfFileId, _lastResult.pdfUrl);
+          .handleSendInvoiceEmail(
+            _lastResult.rowNumber,
+            _lastResult.includeFee,
+            _lastResult.pdfFileId,
+            _lastResult.pdfUrl,
+          );
       };
 
       const handleError = (error) => {
@@ -310,7 +341,7 @@
 
       const hideSpinner = () => {
         const submitButtons = document.querySelectorAll(".submit-button");
-        submitButtons.forEach(button => {
+        submitButtons.forEach((button) => {
           button.classList.remove("hide-text");
           button.disabled = false;
         });

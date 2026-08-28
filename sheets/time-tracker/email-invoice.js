@@ -55,10 +55,12 @@ function sendInvoiceEmail(
   const htmlBody = template.evaluate().getContent();
   const subject = `Invoice ${invoiceNumber} from UpHill Solutions`;
 
-  const logoBlob = DriveApp.getFileById('1ja5S94DUdx_lj5tbbUBepNMhnK39IW2B').getBlob();
+  const logoBlob = DriveApp.getFileById(
+    "1ja5S94DUdx_lj5tbbUBepNMhnK39IW2B",
+  ).getBlob();
 
   const recipient = invoiceData.emailTo || Session.getActiveUser().getEmail();
-  GmailApp.sendEmail(
+  const draft = GmailApp.createDraft(
     recipient,
     subject,
     `Please find your invoice ${invoiceNumber} attached. You can also view it online: ${pdfUrl}`,
@@ -74,6 +76,8 @@ function sendInvoiceEmail(
   );
 
   Logger.log(
-    `Invoice email sent to ${recipient} — subject: ${subject}`,
+    `Invoice email draft created for ${recipient}, subject: ${subject}`,
   );
+
+  return `https://mail.google.com/mail/u/0/#drafts?compose=${draft.getMessage().getId()}`;
 }

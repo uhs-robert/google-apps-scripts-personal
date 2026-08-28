@@ -597,9 +597,15 @@ function handleSendInvoiceEmail(rowNumber, includeFee, pdfFileId, pdfUrl) {
     );
     const pdfBlob = DriveApp.getFileById(pdfFileId).getBlob();
 
-    sendInvoiceEmail(invoiceData, invoiceNumber, includeFee, pdfBlob, pdfUrl);
+    const draftUrl = sendInvoiceEmail(
+      invoiceData,
+      invoiceNumber,
+      includeFee,
+      pdfBlob,
+      pdfUrl,
+    );
 
-    return { success: true };
+    return { success: true, draftUrl: draftUrl };
   } catch (error) {
     return { success: false, message: error.toString() };
   }
